@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masterclass Complète : GEO (Generative Engine Optimization)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #0c1222;
+            --ink-soft: #334155;
+            --ink-muted: #64748b;
+            --surface: #f8fafc;
+            --blue-primary: #2563eb;
+            --indigo-primary: #4f46e5;
+            --emerald-primary: #059669;
+            --radius-xl: 28px;
+            --slide-transition: 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden; background-color: var(--surface); color: var(--ink); -webkit-font-smoothing: antialiased; }
+
+        /* --- BACKGROUND & AMBIANCE --- */
+        .blob { position: fixed; filter: blur(100px); z-index: 0; opacity: 0.4; animation: blobFloat 20s infinite ease-in-out; pointer-events: none; }
+        .blob-1 { top: -10%; left: -10%; width: 600px; height: 600px; background: radial-gradient(circle, #bfdbfe 0%, #dbeafe 100%); }
+        .blob-2 { bottom: -10%; right: -10%; width: 700px; height: 700px; background: radial-gradient(circle, #c7d2fe 0%, #e0e7ff 100%); animation-delay: 5s; }
+        .blob-3 { top: 40%; left: 30%; width: 500px; height: 500px; background: radial-gradient(circle, #a7f3d0 0%, #ecfdf5 100%); animation-delay: 2s; opacity: 0.2; }
+        @keyframes blobFloat { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 33% { transform: translate(30px, 50px) rotate(5deg); } 66% { transform: translate(-20px, 30px) rotate(-3deg); } }
+        .bg-grid { position: fixed; inset: 0; z-index: 0; opacity: 0.4; background-size: 60px 60px; background-image: linear-gradient(to right, rgba(99, 102, 241, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(99, 102, 241, 0.05) 1px, transparent 1px); }
+
+        /* --- SLIDE ENGINE --- */
+        .slide { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; opacity: 0; pointer-events: none; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 3rem; z-index: 1; transition: all var(--slide-transition); transform: scale(0.98) translateY(10px); filter: blur(8px); }
+        .slide.active { opacity: 1; pointer-events: auto; transform: scale(1) translateY(0); filter: blur(0px); z-index: 2; }
+
+        .anim { opacity: 0; transform: translateY(20px); transition: all 0.6s ease-out; }
+        .active .anim { opacity: 1; transform: translateY(0); }
+        .d1 { transition-delay: 150ms; } .d2 { transition-delay: 300ms; } .d3 { transition-delay: 450ms; } .d4 { transition-delay: 600ms; } .d5 { transition-delay: 750ms; }
+
+        /* --- UI COMPONENTS --- */
+        .glass { background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(20px); border: none; border-radius: var(--radius-xl); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02); }
+        .glass-strong { background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(24px); border: none; border-radius: var(--radius-xl); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05); }
+        
+        .badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 999px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+        
+        .content-scroll { max-height: 80vh; overflow-y: auto; padding-right: 1rem; scrollbar-width: thin; }
+        .content-scroll::-webkit-scrollbar { width: 6px; }
+        .content-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+
+        /* Custom Layouts */
+        .pipeline-node { width: 140px; height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-size: 0.7rem; font-weight: 800; border-radius: 16px; position: relative; border: none; }
+        .pipeline-arrow { height: 2px; flex-grow: 1; background: #cbd5e1; position: relative; }
+        .pipeline-arrow::after { content: ''; position: absolute; right: 0; top: -4px; border: 5px solid transparent; border-left-color: #cbd5e1; }
+        
+        .entity-node { width: 90px; height: 90px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 800; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; position: absolute; }
+        
+        /* Quiz */
+        .quiz-option { cursor: pointer; display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem; border-radius: 0.5rem; transition: background 0.2s; }
+        .quiz-option:hover { background-color: rgba(219, 234, 254, 0.5); }
+        .quiz-radio { width: 1.25rem; height: 1.25rem; accent-color: var(--blue-primary); cursor: pointer; flex-shrink: 0;}
+
+        /* NAVIGATION */
+        .nav-btn { padding: 14px; border-radius: 50%; border: none; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .nav-btn:active { transform: scale(0.92); }
+        .nav-next { background: var(--ink); color: white; }
+        .progress-track { height: 4px; background: #e2e8f0; position: fixed; bottom: 0; left: 0; width: 100%; z-index: 100; }
+        .progress-fill { height: 100%; background: var(--blue-primary); transition: width 0.4s ease; }
+    </style>
+</head>
+<body>
+
+    <div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div>
+    <div class="bg-grid"></div>
+
+    <nav class="fixed bottom-8 right-8 z-[110] flex items-center gap-4">
+        <span class="font-mono text-xs font-bold text-slate-400" id="slideCounter">01 / 43</span>
+        <button onclick="prevSlide()" class="nav-btn"><i data-lucide="arrow-left" width="20"></i></button>
+        <button onclick="nextSlide()" class="nav-btn nav-next"><i data-lucide="arrow-right" width="20"></i></button>
+    </nav>
+    <div class="progress-track"><div id="progress" class="progress-fill" style="width:0%"></div></div>
+
+    <section class="slide active">
+        <div class="text-center max-w-5xl">
+            <div class="anim d1 badge bg-blue-50 text-blue-700 border border-blue-100 mb-6">Formation SEO & GEO</div>
+            <h1 class="anim d2 text-6xl md:text-8xl font-black tracking-tighter leading-[0.95] mb-8 text-slate-900">
+                L'Avènement du <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-emerald-500">G.E.O.</span>
+            </h1>
+            <p class="anim d3 text-2xl text-slate-600 font-medium max-w-3xl mx-auto">
+                De l'optimisation pour les Moteurs de Recherche (SEO) à l'optimisation pour les Moteurs de Réponse (Generative Engine Optimization).
+            </p>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-6xl w-full">
+            <h2 class="anim d1 text-4xl font-bold mb-10 text-center text-slate-900">Le Programme</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="anim d2 glass p-5 border-t-4 border-slate-300">
+                    <div class="text-slate-400 font-black text-xl mb-1">M1</div>
+                    <h3 class="font-bold text-md mb-1 text-slate-800">Le Grand Shift</h3>
+                    <p class="text-[11px] text-slate-600">Pourquoi le SEO classique meurt (SGE, Perplexity).</p>
+                </div>
+                <div class="anim d3 glass p-5 border-t-4 border-blue-400">
+                    <div class="text-blue-500 font-black text-xl mb-1">M2</div>
+                    <h3 class="font-bold text-md mb-1 text-slate-800">Comment lit l'IA</h3>
+                    <p class="text-[11px] text-slate-600">RAG, Vector Database et Knowledge Graph.</p>
+                </div>
+                <div class="anim d4 glass p-5 border-t-4 border-indigo-400">
+                    <div class="text-indigo-500 font-black text-xl mb-1">M3</div>
+                    <h3 class="font-bold text-md mb-1 text-slate-800">La Théorie GEO</h3>
+                    <p class="text-[11px] text-slate-600">Les 3 piliers pour être cité par un LLM.</p>
+                </div>
+                <div class="anim d5 glass-strong p-5 border-t-4 border-emerald-400 shadow-md">
+                    <div class="text-emerald-500 font-black text-xl mb-1">M4</div>
+                    <h3 class="font-bold text-md mb-1 text-slate-800">Tutoriel Pratique</h3>
+                    <p class="text-[11px] text-slate-600">Refonte d'un site Web (Homepage, Blog, About).</p>
+                </div>
+                <div class="anim d6 glass p-5 border-t-4 border-amber-400">
+                    <div class="text-amber-500 font-black text-xl mb-1">M5</div>
+                    <h3 class="font-bold text-md mb-1 text-slate-800">Tech & Format</h3>
+                    <p class="text-[11px] text-slate-600">HTML Sémantique, Markdown et Schema.org.</p>
+                </div>
+                <div class="anim d6 glass p-5 border-t-4 border-rose-400">
+                    <div class="text-rose-400 font-black text-xl mb-1">M6</div>
+                    <h3 class="font-bold text-md mb-1 text-slate-800">Gain d'Information</h3>
+                    <p class="text-[11px] text-slate-600">Le concept ultime pour battre la moyenne.</p>
+                </div>
+                <div class="anim d6 glass p-5 border-t-4 border-purple-400">
+                    <div class="text-purple-400 font-black text-xl mb-1">M7</div>
+                    <h3 class="font-bold text-md mb-1 text-slate-800">KPIs & Mesure</h3>
+                    <p class="text-[11px] text-slate-600">Comment traquer le "Share of Model Voice".</p>
+                </div>
+                <div class="anim d6 glass p-5 border-t-4 border-blue-600 bg-blue-50/50">
+                    <div class="text-blue-700 font-black text-xl mb-1">M8</div>
+                    <h3 class="font-bold text-md mb-1 text-slate-800">Quiz Interactif</h3>
+                    <p class="text-[11px] text-slate-600">Validation de vos acquis.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-slate-200 text-slate-700 mb-4">Module 1 : Le Shift</div>
+            <h2 class="anim d2 text-4xl font-bold mb-12">Rappel : Le SEO « classique »</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+                <div class="anim d3 glass p-8">
+                    <i data-lucide="search" class="text-blue-500 mb-4" width="32" height="32"></i>
+                    <h4 class="font-bold mb-2">Mécanique</h4>
+                    <p class="text-sm text-slate-500">Crawl, Indexation, Ranking par mots-clés.</p>
+                </div>
+                <div class="anim d4 glass p-8">
+                    <i data-lucide="bar-chart-3" class="text-indigo-500 mb-4" width="32" height="32"></i>
+                    <h4 class="font-bold mb-2">Signaux</h4>
+                    <p class="text-sm text-slate-500">Répétition du mot-clé, Backlinks, Temps de chargement.</p>
+                </div>
+                <div class="anim d5 glass p-8">
+                    <i data-lucide="mouse-pointer-2" class="text-emerald-500 mb-4" width="32" height="32"></i>
+                    <h4 class="font-bold mb-2">Objectif</h4>
+                    <p class="text-sm text-slate-500">Générer un <b>clic</b> depuis une liste de 10 liens bleus.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-slate-200 text-slate-700 mb-4">Module 1 : Le Shift</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8">La Fin des 10 Liens Bleus</h2>
+            <p class="anim d3 text-slate-600 mb-10 max-w-2xl mx-auto">L'utilisateur ne veut plus chercher l'information dans 4 articles de blog différents remplis de publicités. Il veut une <strong>réponse directe</strong>.</p>
+            
+            <div class="anim d4 grid md:grid-cols-2 gap-8 text-left">
+                <div class="glass p-8 border-l-4 border-red-400">
+                    <h3 class="text-xl font-bold text-slate-800 mb-4">La SERP Fragmentée</h3>
+                    <p class="text-sm text-slate-600 mb-4">Aujourd'hui, le 1er lien naturel est souvent sous la ligne de flottaison, caché par les Annonces sponsorisées, les "People Also Ask", et les Google Maps.</p>
+                </div>
+                <div class="glass-strong p-8 border-l-4 border-blue-500 shadow-xl">
+                    <h3 class="text-xl font-bold text-slate-800 mb-4">L'ère du Zero-Click</h3>
+                    <p class="text-sm text-slate-600 mb-4">Près de 60% des recherches Google se terminent aujourd'hui <strong>sans aucun clic</strong>. L'utilisateur lit le résumé en haut de page et s'en va.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <h2 class="anim d1 text-4xl font-bold mb-10">L'Arrivée de la S.G.E.</h2>
+            <p class="anim d2 text-lg text-slate-600 mb-8 max-w-3xl mx-auto">SGE = <strong>Search Generative Experience</strong> (ou AI Overviews).</p>
+            
+            <div class="anim d3 glass-strong p-8 text-left shadow-2xl max-w-4xl mx-auto border-t-8 border-indigo-500">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-8 h-8 bg-indigo-100 rounded flex items-center justify-center"><i data-lucide="sparkles" class="text-indigo-600" width="16"></i></div>
+                    <span class="font-bold text-indigo-900">AI Overview (Généré par Gemini)</span>
+                </div>
+                <p class="text-sm text-slate-700 leading-relaxed mb-6 font-medium">
+                    Pour nettoyer une tache de vin rouge, la méthode la plus efficace recommandée par les experts est d'utiliser du bicarbonate de soude <span class="bg-blue-100 text-blue-800 text-[10px] px-1 rounded cursor-pointer">[1]</span> et de l'eau gazeuse <span class="bg-blue-100 text-blue-800 text-[10px] px-1 rounded cursor-pointer">[2]</span>. Il ne faut surtout pas utiliser d'eau chaude <span class="bg-blue-100 text-blue-800 text-[10px] px-1 rounded cursor-pointer">[3]</span>.
+                </p>
+                <div class="flex gap-4 border-t border-slate-200 pt-4">
+                    <div class="w-32 h-16 bg-white border border-slate-200 rounded-lg flex flex-col justify-center px-3 shadow-sm hover:shadow-md transition">
+                        <span class="text-[10px] text-slate-400 font-bold truncate">1. Maison.com</span>
+                        <span class="text-[11px] text-blue-600 font-medium truncate">Le Bicarbonate...</span>
+                    </div>
+                    <div class="w-32 h-16 bg-white border border-slate-200 rounded-lg flex flex-col justify-center px-3 shadow-sm hover:shadow-md transition">
+                        <span class="text-[10px] text-slate-400 font-bold truncate">2. Astuces-Grand-Mere</span>
+                        <span class="text-[11px] text-blue-600 font-medium truncate">L'eau gazeuse...</span>
+                    </div>
+                </div>
+            </div>
+            <p class="anim d4 mt-6 text-sm text-slate-500 font-bold">Votre nouvel objectif n'est plus d'être "Lien N°1". C'est d'être la <span class="text-blue-600">Source [1]</span>.</p>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <h2 class="anim d1 text-4xl font-bold mb-10">Les Nouveaux Acteurs</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 anim d2">
+                <div class="glass p-8 shadow-sm">
+                    <h3 class="font-black text-2xl mb-2 text-slate-800 tracking-tight">Perplexity</h3>
+                    <p class="text-xs text-slate-500 mb-4">Le moteur de recherche natif IA. Il lit le web en temps réel, synthétise, et cite méticuleusement ses sources.</p>
+                    <div class="text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded font-bold uppercase">Audience Tech / B2B</div>
+                </div>
+                <div class="glass-strong p-8 shadow-lg transform scale-105 border-b-4 border-indigo-500">
+                    <h3 class="font-black text-2xl mb-2 text-slate-800 tracking-tight">AI Overviews</h3>
+                    <p class="text-xs text-slate-500 mb-4">La réponse de Google. Intégré directement dans la SERP classique. C'est lui qui draine le plus gros volume grand public.</p>
+                    <div class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded font-bold uppercase">Mass Market</div>
+                </div>
+                <div class="glass p-8 shadow-sm">
+                    <h3 class="font-black text-2xl mb-2 text-slate-800 tracking-tight">ChatGPT Search</h3>
+                    <p class="text-xs text-slate-500 mb-4">OpenAI intègre désormais la recherche web en direct dans ses prompts pour répondre aux questions d'actualité.</p>
+                    <div class="text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded font-bold uppercase">Audience Hybride</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-blue-100 text-blue-700 mb-4">Module 2 : Fonctionnement IA</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8 text-slate-900">Comment lit l'IA ? (Le R.A.G)</h2>
+            <p class="anim d3 text-slate-600 mb-10 max-w-3xl mx-auto">Ces nouveaux moteurs utilisent une architecture appelée <strong>RAG (Retrieval-Augmented Generation)</strong>. <br>L'IA ne connaît pas votre site par cœur, elle le lit "à la volée".</p>
+            
+            <div class="flex items-center justify-center gap-2 anim d4 px-10">
+                <div class="pipeline-node glass bg-slate-50">Requête <br> Utilisateur</div>
+                <div class="pipeline-arrow"></div>
+                <div class="pipeline-node glass bg-blue-50">Recherche Web <br> (Retrieval)</div>
+                <div class="pipeline-arrow"></div>
+                <div class="pipeline-node glass bg-indigo-50">Lecture & <br> Synthèse</div>
+                <div class="pipeline-arrow"></div>
+                <div class="pipeline-node glass bg-emerald-500 text-white shadow-xl">Génération <br> & Citations</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-6xl w-full text-center">
+            <div class="anim d1 badge bg-blue-100 text-blue-700 mb-4">Module 2 : Fonctionnement IA</div>
+            <h2 class="anim d2 text-4xl font-bold mb-6 text-slate-900">Le concept d'Embedding (Vecteurs)</h2>
+            <p class="anim d3 text-slate-600 mb-8 max-w-3xl mx-auto text-sm">Contrairement au SEO classique qui cherche le mot-clé exact, l'IA traduit votre texte en <strong>coordonnées mathématiques</strong> pour en comprendre le <em>Sens Sémantique</em>.</p>
+            
+            <div class="anim d4 glass p-8 border border-slate-200 shadow-md max-w-4xl mx-auto mb-6">
+                <div class="flex items-center justify-center gap-6 mb-6">
+                    <div class="bg-blue-50 px-4 py-2 rounded-lg font-bold text-blue-800 text-sm shadow-sm border border-blue-100">"Chaussure de course"</div>
+                    <i data-lucide="arrow-right-left" class="text-slate-400"></i>
+                    <div class="bg-indigo-50 px-4 py-2 rounded-lg font-bold text-indigo-800 text-sm shadow-sm border border-indigo-100">"Baskets de running"</div>
+                </div>
+                <p class="text-sm text-slate-600 leading-relaxed text-left">
+                    L'IA sait que ces deux concepts sont identiques, même s'ils n'ont aucune lettre en commun. Votre texte n'a plus besoin d'être "bourré de mots-clés" (Keyword Stuffing). Il a besoin d'être <strong>riche en sémantique et en synonymes naturels</strong>.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center content-scroll pb-10">
+            <div class="anim d1 badge bg-blue-100 text-blue-700 mb-4 mt-8">Module 2 : Fonctionnement IA</div>
+            <h2 class="anim d2 text-4xl font-bold mb-10">Mots-clés vs Entités (Knowledge Graph)</h2>
+            
+            <div class="anim d3 relative h-[300px] w-full flex items-center justify-center max-w-3xl mx-auto mb-8">
+                <svg class="absolute inset-0 w-full h-full -z-10" opacity="0.3">
+                    <line x1="50%" y1="50%" x2="20%" y2="20%" stroke="#4f46e5" stroke-width="2" stroke-dasharray="5,5"/>
+                    <line x1="50%" y1="50%" x2="80%" y2="20%" stroke="#4f46e5" stroke-width="2"/>
+                    <line x1="50%" y1="50%" x2="50%" y2="85%" stroke="#4f46e5" stroke-width="2"/>
+                </svg>
+                
+                <div class="entity-node bg-indigo-600 text-white" style="top: 50%; left: 50%; transform: translate(-50%, -50%); width: 110px; height: 110px; font-size: 0.8rem; z-index: 10;">Tim Cook</div>
+                
+                <div class="entity-node bg-white border-2 border-blue-200 text-slate-700" style="top: 10%; left: 10%;">Apple<br><span class="text-[8px] font-normal text-slate-400">Entreprise</span></div>
+                <div class="entity-node bg-white border-2 border-blue-200 text-slate-700" style="top: 10%; right: 10%;">Steve Jobs<br><span class="text-[8px] font-normal text-slate-400">Prédécesseur</span></div>
+                <div class="entity-node bg-white border-2 border-blue-200 text-slate-700" style="top: 75%; left: 50%; transform: translateX(-50%);">Californie<br><span class="text-[8px] font-normal text-slate-400">Lieu</span></div>
+                
+                <div class="absolute text-[10px] font-bold text-indigo-500 bg-white px-1" style="top: 35%; left: 30%;">est CEO de</div>
+            </div>
+
+            <div class="anim d4 glass-strong p-6 text-left max-w-4xl mx-auto">
+                <p class="text-sm text-slate-700 leading-relaxed">
+                    L'IA structure sa connaissance sous forme d'<strong>Entités</strong> (Personnes, Lieux, Concepts) reliées entre elles. 
+                    En GEO, vous devez prouver à l'IA que vous êtes une "Entité Experte" dans votre domaine, en vous associant sémantiquement à d'autres entités reconnues.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-indigo-100 text-indigo-700 mb-4">Module 3 : Théorie GEO</div>
+            <h2 class="anim d2 text-5xl font-bold mb-8 text-slate-900">Qu'est-ce que le G.E.O ?</h2>
+            <div class="anim d3 glass p-10 bg-gradient-to-br from-white to-indigo-50/30 border-t-8 border-indigo-500 shadow-xl max-w-4xl mx-auto">
+                <p class="text-2xl font-bold text-indigo-900 leading-snug italic mb-4">
+                    "L'art de maximiser la probabilité d'être sélectionné, compris et cité par un Modèle de Langage (LLM) dans sa réponse générée."
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-6xl w-full text-center">
+            <h2 class="anim d1 text-4xl font-bold mb-10">Matrice : SEO vs GEO</h2>
+            <div class="anim d2 glass-strong p-0 overflow-hidden shadow-lg border border-slate-200">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-xs border-b border-slate-200">
+                        <tr>
+                            <th class="p-5 w-1/3">Critère</th>
+                            <th class="p-5 w-1/3 border-l border-slate-200 text-slate-800">SEO Classique</th>
+                            <th class="p-5 w-1/3 border-l border-slate-200 text-indigo-700">GEO (IA)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-slate-700">
+                        <tr class="border-b border-slate-100">
+                            <td class="p-5 font-bold">Cible</td>
+                            <td class="p-5 border-l border-slate-200 text-slate-500">L'algorithme de ranking Google</td>
+                            <td class="p-5 border-l border-slate-200 bg-indigo-50/30 font-bold">Le modèle de langage (RAG)</td>
+                        </tr>
+                        <tr class="border-b border-slate-100">
+                            <td class="p-5 font-bold">Structure du texte</td>
+                            <td class="p-5 border-l border-slate-200 text-slate-500">Longues intros, bourrage de mots-clés</td>
+                            <td class="p-5 border-l border-slate-200 bg-indigo-50/30 font-bold">Direct, dense, style "Prompt"</td>
+                        </tr>
+                        <tr class="border-b border-slate-100">
+                            <td class="p-5 font-bold">Autorité</td>
+                            <td class="p-5 border-l border-slate-200 text-slate-500">Nombre de Backlinks</td>
+                            <td class="p-5 border-l border-slate-200 bg-indigo-50/30 font-bold">Mentions de la Marque (Citations)</td>
+                        </tr>
+                        <tr>
+                            <td class="p-5 font-bold">Métrique de succès</td>
+                            <td class="p-5 border-l border-slate-200 text-slate-500">Clics (CTR) et Position 1</td>
+                            <td class="p-5 border-l border-slate-200 bg-indigo-50/30 font-bold">Share of Model Voice (Être la source)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-6xl w-full text-center">
+            <div class="anim d1 badge bg-indigo-100 text-indigo-700 mb-4">Module 3 : Théorie GEO</div>
+            <h2 class="anim d2 text-4xl font-bold mb-12">Les 3 Piliers du GEO</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+                <div class="anim d3 glass p-8 shadow-sm border-t-4 border-blue-400">
+                    <h4 class="font-black text-blue-600 mb-2 text-xl">1. Accessibilité</h4>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Machine-Readable</p>
+                    <p class="text-sm text-slate-600">Si le bot d'OpenAI a un "Timeout" (latence) sur votre site, il abandonne. Votre code doit être sémantique, rapide, et structuré (JSON-LD, Markdown).</p>
+                </div>
+                <div class="anim d4 glass-strong p-8 shadow-lg transform -translate-y-4 border-t-4 border-indigo-500">
+                    <h4 class="font-black text-indigo-600 mb-2 text-xl">2. Compréhension</h4>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Fluency & EEAT</p>
+                    <p class="text-sm text-slate-600">L'IA doit extraire la réponse instantanément. Fini le "Fluff". On utilise des phrases courtes, des puces, des tableaux, et on va droit au but (BLUF).</p>
+                </div>
+                <div class="anim d5 glass p-8 shadow-sm border-t-4 border-emerald-400">
+                    <h4 class="font-black text-emerald-600 mb-2 text-xl">3. Citation</h4>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Information Gain</p>
+                    <p class="text-sm text-slate-600">Pourquoi l'IA vous citerait VOUS plutôt que Wikipedia ? Parce que vous apportez une donnée originale, une citation d'expert, ou une statistique inédite.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-emerald-100 text-emerald-800 mb-4">Module 4 : Tutoriel Pratique</div>
+            <h2 class="anim d2 text-5xl font-bold mb-8 text-slate-900">Mise en situation : Acme Corp</h2>
+            <div class="anim d3 glass-strong p-10 max-w-3xl mx-auto shadow-xl text-left border-l-8 border-emerald-500">
+                <p class="text-lg text-slate-700 leading-relaxed font-medium mb-4">
+                    Acme Corp vend un logiciel B2B de gestion de paie. Leur SEO chute depuis l'arrivée d'AI Overviews.
+                </p>
+                <p class="text-sm text-slate-600 mb-6">
+                    Nous allons analyser et corriger 3 de leurs pages pour les rendre "GEO-Friendly" :
+                </p>
+                <ul class="space-y-2 text-sm font-bold text-emerald-800">
+                    <li><i data-lucide="arrow-right" class="inline w-4 text-emerald-500"></i> Le Blog Post (La plaie du Fluff)</li>
+                    <li><i data-lucide="arrow-right" class="inline w-4 text-emerald-500"></i> La Homepage (Manque de sémantique)</li>
+                    <li><i data-lucide="arrow-right" class="inline w-4 text-emerald-500"></i> La page "À propos" (Le déficit de confiance)</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-6xl w-full text-center content-scroll pb-10">
+            <div class="anim d1 badge bg-emerald-100 text-emerald-800 mb-4 mt-8">Cas 1 : L'Article de Blog</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8">La guerre contre le "Fluff"</h2>
+            <p class="anim d3 text-sm text-slate-600 mb-6 max-w-3xl mx-auto">Le lecteur humain scrolle. L'IA, elle, traite chaque token et s'embrouille si le texte n'a pas de valeur immédiate.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left max-w-5xl mx-auto">
+                <div class="anim d4 glass p-6 border border-red-200">
+                    <div class="text-xs font-bold text-red-500 uppercase mb-3 flex items-center gap-2"><i data-lucide="x-circle" width="16"></i> SEO 2020 (L'intro à rallonge)</div>
+                    <div class="bg-red-50 p-4 rounded text-xs text-red-900 leading-relaxed italic opacity-80">
+                        "Depuis la nuit des temps, gérer la paie est un problème. Dans cet article passionnant, nous allons voir comment faire une fiche de paie. Mais avant tout, qu'est-ce qu'une fiche de paie ? C'est un document légal..."
+                    </div>
+                    <p class="text-[10px] text-red-600 mt-2 font-bold">L'IA abandonne l'extraction car la densité d'information (Information Density) est trop faible.</p>
+                </div>
+                <div class="anim d5 glass-strong p-6 border-2 border-emerald-400 shadow-md relative">
+                    <div class="absolute -top-3 -right-3 bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-full">GEO PRO</div>
+                    <div class="text-xs font-bold text-emerald-600 uppercase mb-3 flex items-center gap-2"><i data-lucide="check-circle" width="16"></i> GEO 2026 (B.L.U.F)</div>
+                    <div class="bg-emerald-50 p-4 rounded text-xs text-emerald-900 leading-relaxed font-medium">
+                        "Pour éditer une fiche de paie conforme en 2026, 3 éléments sont obligatoires selon l'URSSAF :<br>
+                        1. Le taux de prélèvement à la source.<br>
+                        2. Les cotisations patronales mises à jour.<br>
+                        3. Le Net Social."
+                    </div>
+                    <p class="text-[10px] text-emerald-600 mt-2 font-bold">BLUF : Bottom Line Up Front. On donne la réponse brute au premier paragraphe.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-6xl w-full text-center">
+            <div class="anim d1 badge bg-emerald-100 text-emerald-800 mb-4">Cas 2 : La Homepage</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8">Clarté Sémantique (Pas de poésie)</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-left max-w-5xl mx-auto">
+                <div class="anim d3 glass p-6 opacity-80">
+                    <h4 class="font-bold text-red-500 text-sm mb-2">Le Titre "Marketing"</h4>
+                    <div class="bg-slate-900 text-white p-6 rounded-lg text-center shadow-inner mb-4">
+                        <h1 class="text-2xl font-black mb-2">Libérez le potentiel de vos équipes.</h1>
+                        <p class="text-xs text-slate-400">Passez à la vitesse supérieure avec Acme.</p>
+                    </div>
+                    <p class="text-xs text-slate-600">L'IA ne comprend pas ce que vend l'entreprise. Des chaussures ? Du coaching ? Un logiciel ?</p>
+                </div>
+                <div class="anim d4 glass-strong p-6 border-l-4 border-emerald-500 shadow-xl">
+                    <h4 class="font-bold text-emerald-600 text-sm mb-2">Le Titre "GEO-Sémantique"</h4>
+                    <div class="bg-slate-900 text-white p-6 rounded-lg text-center shadow-inner mb-4">
+                        <h1 class="text-xl font-black mb-2">Logiciel SaaS de Gestion de Paie pour PME Françaises.</h1>
+                        <p class="text-xs text-emerald-400">Automatisez vos fiches de paie et déclarations URSSAF avec Acme.</p>
+                    </div>
+                    <p class="text-xs text-slate-700 font-bold">L'entité est claire. L'IA peut catégoriser Acme Corp instantanément dans sa Vector DB.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-emerald-100 text-emerald-800 mb-4">Cas 3 : La Page "À Propos"</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8">Nourrir le Knowledge Graph (E-E-A-T)</h2>
+            <p class="anim d3 text-slate-600 mb-8 max-w-3xl mx-auto text-sm">L'IA cherche des sources <strong>fiables</strong>. Votre page "À propos" ou vos pages "Auteurs" ne sont plus des pages RH, ce sont des bases de données de preuves (Expertise, Experience, Authority, Trust).</p>
+            
+            <div class="anim d4 glass-strong p-8 max-w-3xl mx-auto shadow-md text-left">
+                <h3 class="font-bold text-lg text-slate-800 mb-4">Les éléments GEO indispensables :</h3>
+                <ul class="space-y-3 text-sm text-slate-700 font-medium">
+                    <li class="flex items-center gap-3"><div class="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center"><i data-lucide="check" width="14"></i></div> Liens vers les profils LinkedIn des fondateurs (Preuve d'existence).</li>
+                    <li class="flex items-center gap-3"><div class="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center"><i data-lucide="check" width="14"></i></div> Année de création et Adresse physique exacte (Entités vérifiables).</li>
+                    <li class="flex items-center gap-3"><div class="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center"><i data-lucide="check" width="14"></i></div> Mentions presse avec liens sortants ("Vu dans Les Echos").</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-amber-100 text-amber-700 mb-4">Module 5 : Format & Technique</div>
+            <h2 class="anim d2 text-4xl font-bold mb-10 text-slate-900">Parler la langue du Bot (Markdown)</h2>
+            <div class="anim d3 glass-strong p-10 flex flex-col md:flex-row items-center gap-10 shadow-xl max-w-4xl mx-auto text-left">
+                <div class="flex-1">
+                    <h3 class="text-xl font-bold text-slate-800 mb-4">Structure visuelle = Structure LLM</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed mb-4">
+                        Les LLMs sont souvent entraînés sur du format <strong>Markdown</strong>. Ils adorent les Listes à puces (Bullets) et les Textes en Gras (Bold) car cela crée des "ancres d'attention" dans leurs calculs mathématiques.
+                    </p>
+                    <div class="bg-amber-50 p-3 rounded text-xs font-bold text-amber-800 border border-amber-200">
+                        Règle : Si votre article n'a pas de H2, de listes à puces ou de mise en gras des concepts clés, l'IA ne l'utilisera pas.
+                    </div>
+                </div>
+                <div class="w-1/3 bg-slate-900 p-4 rounded-xl text-green-400 font-mono text-[10px] leading-relaxed shadow-inner">
+                    ## Les avantages<br><br>
+                    * **Vitesse** : Réponse en 1s.<br>
+                    * **Précision** : Pas de code inutile.<br><br>
+                    > L'IA parse ce format instantanément.
+                </div>
+            </div>
+        </div>
+    </section>
+
+<section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-amber-100 text-amber-700 mb-4">Module 5 : Format & Technique</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8 text-slate-900">Le Pouvoir des Tableaux (Tables)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-left max-w-4xl mx-auto">
+                <div class="anim d3 glass p-8">
+                    <h3 class="text-lg font-bold text-slate-800 mb-2">Facilité d'extraction</h3>
+                    <p class="text-sm text-slate-600 mb-4">Les tableaux HTML (<code>&lt;table&gt;</code>) structurent la donnée brute (clés/valeurs). Les IA raffolent des données tabulaires pour générer des comparatifs.</p>
+                </div>
+                <div class="anim d4 glass-strong p-6 shadow-md border-l-4 border-amber-500 overflow-hidden">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-100 text-slate-600 font-bold uppercase">
+                            <tr><th class="p-2">Logiciel</th><th class="p-2">Prix</th><th class="p-2">Cible</th></tr>
+                        </thead>
+                        <tbody class="text-slate-700">
+                            <tr class="border-b border-slate-100"><td class="p-2">Acme</td><td class="p-2 font-bold">49€</td><td class="p-2">TPE</td></tr>
+                            <tr class="border-b border-slate-100"><td class="p-2">PayFit</td><td class="p-2 font-bold">99€</td><td class="p-2">PME</td></tr>
+                        </tbody>
+                    </table>
+                    <p class="text-[9px] text-amber-600 font-bold mt-4 text-center">Si un utilisateur demande "Compare Acme et PayFit", Perplexity utilisera ce tableau directement.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-6xl w-full text-center content-scroll pb-10">
+            <div class="anim d1 badge bg-amber-100 text-amber-700 mb-4 mt-8">Module 5 : Format & Technique</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8 text-slate-900">JSON-LD & Schema.org (La ligne directe)</h2>
+            <p class="anim d3 text-slate-600 mb-6 text-sm max-w-2xl mx-auto">C'est du code invisible pour l'humain, mais qui donne les informations pré-digérées aux robots.</p>
+            
+            <div class="anim d4 glass-strong p-6 bg-slate-900 rounded-xl text-left shadow-2xl max-w-4xl mx-auto overflow-x-auto relative">
+                <div class="absolute top-0 right-0 bg-blue-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">BALISE SCRIPT DANS LE HEADER</div>
+                <pre class="font-mono text-[11px] text-blue-300 leading-relaxed pt-2">
+&lt;script type="application/ld+json"&gt;
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [{
+    "@type": "Question",
+    "name": "Combien coûte le logiciel Acme ?",
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Acme coûte 49 euros par mois sans engagement."
+    }
+  }]
+}
+&lt;/script&gt;
+                </pre>
+            </div>
+            <p class="anim d5 text-xs text-slate-500 mt-4 font-bold">Le parseur d'OpenAI/Google lit ce JSON instantanément sans avoir à analyser le design de votre page.</p>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-rose-100 text-rose-700 mb-4">Module 6 : Stratégie Contenu</div>
+            <h2 class="anim d2 text-5xl font-bold mb-8 text-slate-900">L'Information Gain</h2>
+            <div class="anim d3 glass-strong p-10 bg-gradient-to-br from-white to-rose-50/30 border-t-8 border-rose-500 shadow-xl max-w-4xl mx-auto">
+                <h3 class="text-xl font-bold text-rose-900 mb-4 text-left">Pourquoi vous citer vous ?</h3>
+                <p class="text-sm text-slate-700 leading-relaxed text-left mb-6">
+                    Si votre article de blog est une simple reformulation de ce qui existe déjà sur le web, l'IA n'a <strong>aucune raison de vous citer</strong>. L'IA a déjà lu l'information d'origine (Wikipédia, gros médias).<br><br>
+                    Pour forcer l'IA à vous sourcer (le lien [1]), votre page doit contenir un <strong>Gain d'Information (Information Gain)</strong>, c'est-à-dire une donnée inédite qu'elle ne trouve nulle part ailleurs.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-rose-100 text-rose-700 mb-4">Module 6 : Stratégie Contenu</div>
+            <h2 class="anim d2 text-4xl font-bold mb-10 text-slate-900">Comment créer du Gain d'Information ?</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+                <div class="anim d3 glass p-6 shadow-sm">
+                    <i data-lucide="bar-chart-2" class="text-blue-500 mb-4" width="28"></i>
+                    <h4 class="font-bold text-slate-800 mb-2">Data Originale</h4>
+                    <p class="text-xs text-slate-600">Publiez des statistiques issues de vos propres bases de données (ex: "Selon l'étude d'Acme sur 10 000 PME...").</p>
+                </div>
+                <div class="anim d4 glass p-6 shadow-sm border-t-4 border-rose-400">
+                    <i data-lucide="quote" class="text-rose-500 mb-4" width="28"></i>
+                    <h4 class="font-bold text-slate-800 mb-2">Citations d'Experts</h4>
+                    <p class="text-xs text-slate-600">L'IA adore les "Expert Quotes". Ajoutez l'avis d'un humain réel, identifié, au milieu du contenu de la page.</p>
+                </div>
+                <div class="anim d5 glass p-6 shadow-sm">
+                    <i data-lucide="beaker" class="text-emerald-500 mb-4" width="28"></i>
+                    <h4 class="font-bold text-slate-800 mb-2">Études de cas réelles</h4>
+                    <p class="text-xs text-slate-600">Racontez une expérience vécue (Experience) que l'IA ne peut pas simuler ni inventer.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-rose-100 text-rose-700 mb-4">Astuce Pratique</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8 text-slate-900">Le format de la Citation Experte</h2>
+            <p class="anim d3 text-slate-600 mb-6 text-sm max-w-2xl mx-auto">Voici comment formater une citation dans votre HTML pour maximiser ses chances d'être aspirée par Perplexity ou Gemini.</p>
+            
+            <div class="anim d4 glass-strong p-8 text-left max-w-3xl mx-auto shadow-xl border-l-4 border-slate-800">
+                <div class="flex items-center gap-4 mb-4">
+                    <img src="https://i.pravatar.cc/150?u=4" class="w-12 h-12 rounded-full shadow-sm">
+                    <div>
+                        <p class="text-sm font-bold text-slate-900">Jean Dupont</p>
+                        <p class="text-[10px] text-slate-500 uppercase tracking-widest">CEO @ Acme Corp • Expert Paie</p>
+                    </div>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 text-sm text-slate-700 italic relative">
+                    <i data-lucide="quote" class="absolute top-2 right-2 text-slate-200" width="20"></i>
+                    "La réforme de 2026 sur le Net Social oblige les PME à revoir leurs logiciels. Sans automatisation, le risque d'amende URSSAF augmente de 40%."
+                </div>
+                <p class="text-[10px] text-rose-600 font-bold mt-4">➔ L'IA détecte l'entité (Jean Dupont, CEO) et lui attribue une forte crédibilité contextuelle.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <h2 class="anim d1 text-4xl font-bold mb-8 text-slate-900">Le Ton de Voix (Tone of Voice)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-left max-w-4xl mx-auto">
+                <div class="anim d2 glass p-8">
+                    <h3 class="text-lg font-bold text-red-600 mb-2">À Fuir : Le ton Commercial</h3>
+                    <p class="text-sm text-slate-600 mb-4">L'IA filtre les textes trop promotionnels car elle cherche à générer une réponse <strong>neutre et objective</strong> pour son utilisateur.</p>
+                    <div class="bg-red-50 p-2 rounded text-xs text-red-800 italic">"Notre logiciel est le meilleur du marché, achetez-le vite !"</div>
+                </div>
+                <div class="anim d3 glass-strong p-8 shadow-md border-t-4 border-emerald-500">
+                    <h3 class="text-lg font-bold text-emerald-600 mb-2">À Adopter : Objectif & Pédagogue</h3>
+                    <p class="text-sm text-slate-600 mb-4">Soyez le Wikipedia de votre niche. Un contenu factuel a 10x plus de chances d'être sélectionné par le RAG de Google.</p>
+                    <div class="bg-emerald-50 p-2 rounded text-xs text-emerald-800 italic">"Acme propose une solution adaptée aux PME de 10 à 50 salariés."</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-purple-100 text-purple-800 mb-4">Module 7 : Mesure & KPIs</div>
+            <h2 class="anim d2 text-5xl font-bold mb-8 text-slate-900">Le Clic est mort. Vive l'Influence.</h2>
+            <p class="anim d3 text-slate-600 mb-8 max-w-2xl mx-auto">
+                Avec la SGE, le trafic organique direct (les visites sur votre site) va mécaniquement baisser. Mais votre visibilité réelle, elle, peut exploser.
+            </p>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-6xl w-full text-center">
+            <h2 class="anim d1 text-4xl font-bold mb-10 text-slate-900">Le nouveau KPI : Share of Model Voice (SMV)</h2>
+            <div class="anim d2 glass-strong p-8 max-w-4xl mx-auto text-left shadow-lg">
+                <h3 class="font-bold text-xl text-purple-800 mb-4 flex items-center gap-2"><i data-lucide="pie-chart"></i> Part de Voix du Modèle</h3>
+                <p class="text-sm text-slate-700 leading-relaxed mb-6">
+                    On ne compte plus sa position (1er ou 2ème). On compte : <strong>Combien de fois la marque est citée dans la réponse de l'IA sur un panel de requêtes ?</strong>
+                </p>
+                <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-slate-500 uppercase">Requête test : "Meilleur outil paie PME"</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-4 mb-2 flex overflow-hidden">
+                        <div class="bg-blue-500 h-4" style="width: 45%" title="PayFit"></div>
+                        <div class="bg-purple-500 h-4" style="width: 30%" title="Acme"></div>
+                        <div class="bg-slate-400 h-4" style="width: 25%" title="Autres"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px] font-bold text-slate-500">
+                        <span class="text-blue-600">Concurrent A (45%)</span>
+                        <span class="text-purple-600">Acme (30% SMV)</span>
+                        <span>Autres (25%)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full">
+            <h2 class="anim d1 text-center text-4xl font-bold mb-10">L'impact Business du GEO</h2>
+            <div class="grid md:grid-cols-3 gap-6 anim d2 text-center">
+                <div class="glass p-6">
+                    <div class="text-3xl mb-2 font-black text-red-500">↘ 30%</div>
+                    <h5 class="font-bold text-slate-800 mb-2">Trafic Informational</h5>
+                    <p class="text-[10px] text-slate-500">Les questions simples ("Qu'est-ce qu'une fiche de paie ?") sont répondues en Zero-Click par l'IA.</p>
+                </div>
+                <div class="glass p-6">
+                    <div class="text-3xl mb-2 font-black text-amber-500">↔ Stable</div>
+                    <h5 class="font-bold text-slate-800 mb-2">Trafic Transactionnel</h5>
+                    <p class="text-[10px] text-slate-500">L'utilisateur veut acheter, l'IA le redirige vers des pages produits ou de prix.</p>
+                </div>
+                <div class="glass-strong p-6 shadow-md border-t-4 border-emerald-500">
+                    <div class="text-3xl mb-2 font-black text-emerald-500">↗ +200%</div>
+                    <h5 class="font-bold text-slate-800 mb-2">Requêtes de Marque</h5>
+                    <p class="text-[10px] text-slate-500">L'IA cite "Acme". L'utilisateur, rassuré par l'IA, tape ensuite "Acme" sur Google pour acheter en direct.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-slate-800 text-white mb-4">Stratégie d'Avenir</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8 text-slate-900">Devenir l'Entité Référente</h2>
+            <p class="anim d3 text-slate-600 mb-8 max-w-3xl mx-auto">
+                Le GEO ne se limite pas à votre site. L'IA lit tout internet. Vous devez orchestrer votre présence partout.
+            </p>
+            <div class="anim d4 glass-strong p-8 flex justify-center gap-8 shadow-xl max-w-3xl mx-auto">
+                <div class="text-center">
+                    <i data-lucide="youtube" class="mx-auto text-red-500 mb-2"></i>
+                    <p class="text-xs font-bold text-slate-700">Vidéos Transcrites</p>
+                </div>
+                <div class="text-center">
+                    <i data-lucide="mic" class="mx-auto text-purple-500 mb-2"></i>
+                    <p class="text-xs font-bold text-slate-700">Podcasts (Audio)</p>
+                </div>
+                <div class="text-center">
+                    <i data-lucide="newspaper" class="mx-auto text-blue-500 mb-2"></i>
+                    <p class="text-xs font-bold text-slate-700">PR (Relations Presse)</p>
+                </div>
+                <div class="text-center">
+                    <i data-lucide="globe" class="mx-auto text-emerald-500 mb-2"></i>
+                    <p class="text-xs font-bold text-slate-700">Votre Site Web (GEO)</p>
+                </div>
+            </div>
+            <p class="anim d5 text-xs text-slate-400 mt-6 font-bold uppercase tracking-widest">Synergie OMNICANAL = Domination du Knowledge Graph</p>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center content-scroll pb-16">
+            <div class="anim d1 badge bg-blue-100 text-blue-700 mb-4 mt-10">Validation des acquis</div>
+            <h2 class="anim d2 text-4xl font-bold mb-4 text-slate-900">Le Grand Quiz : SEO vers GEO</h2>
+            <p class="anim d3 text-slate-600 mb-8 max-w-2xl mx-auto">Cochez la bonne réponse pour chaque question, puis validez pour découvrir si vous êtes prêt pour 2026.</p>
+            
+            <form id="quiz-form" onsubmit="event.preventDefault(); checkQuiz();" class="anim d4 grid grid-cols-1 gap-4 text-left max-w-3xl mx-auto">
+                
+                <div id="qcard-1" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-blue-600 mr-2">1.</span> Que signifie l'acronyme SGE ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q1" value="A" class="quiz-radio"> Search Generated Experience</label>
+                        <label class="quiz-option"><input type="radio" name="q1" value="B" class="quiz-radio"> Search Generative Experience</label>
+                        <label class="quiz-option"><input type="radio" name="q1" value="C" class="quiz-radio"> Standard Google Engine</label>
+                    </div>
+                </div>
+
+                <div id="qcard-2" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-blue-600 mr-2">2.</span> Pourquoi le trafic "informational" (recherche d'infos simples) baisse-t-il ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q2" value="A" class="quiz-radio"> À cause de la montée en puissance de TikTok.</label>
+                        <label class="quiz-option"><input type="radio" name="q2" value="B" class="quiz-radio"> À cause du phénomène "Zero-Click" : l'IA répond directement sur la page de résultats.</label>
+                        <label class="quiz-option"><input type="radio" name="q2" value="C" class="quiz-radio"> Parce que Google pénalise les articles de blog.</label>
+                    </div>
+                </div>
+
+                <div id="qcard-3" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-blue-600 mr-2">3.</span> Que fait un modèle d'Embedding ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q3" value="A" class="quiz-radio"> Il traduit le texte en vecteurs mathématiques pour comprendre le sens sémantique.</label>
+                        <label class="quiz-option"><input type="radio" name="q3" value="B" class="quiz-radio"> Il intègre des vidéos YouTube sur votre site.</label>
+                        <label class="quiz-option"><input type="radio" name="q3" value="C" class="quiz-radio"> Il génère du texte à partir d'un prompt.</label>
+                    </div>
+                </div>
+
+                <div id="qcard-4" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-blue-600 mr-2">4.</span> Qu'est-ce qu'une "Entité" dans le SEO/GEO ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q4" value="A" class="quiz-radio"> Une balise HTML spéciale.</label>
+                        <label class="quiz-option"><input type="radio" name="q4" value="B" class="quiz-radio"> Un concept, une personne, un lieu ou une marque identifié(e) par le Knowledge Graph.</label>
+                        <label class="quiz-option"><input type="radio" name="q4" value="C" class="quiz-radio"> Une entreprise qui paie pour des annonces Google.</label>
+                    </div>
+                </div>
+
+                <div id="qcard-5" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-blue-600 mr-2">5.</span> L'abréviation "B.L.U.F" conseillée pour la rédaction GEO signifie :</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q5" value="A" class="quiz-radio"> Bottom Line Up Front (L'info essentielle en premier).</label>
+                        <label class="quiz-option"><input type="radio" name="q5" value="B" class="quiz-radio"> Build Links Until First (Faire des liens jusqu'à être premier).</label>
+                        <label class="quiz-option"><input type="radio" name="q5" value="C" class="quiz-radio"> Best Layout Under Fold (Meilleur design en bas de page).</label>
+                    </div>
+                </div>
+
+                <div id="qcard-6" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-blue-600 mr-2">6.</span> Qu'est-ce que l'"Information Gain" ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q6" value="A" class="quiz-radio"> Le temps gagné par l'utilisateur en ne cliquant pas.</label>
+                        <label class="quiz-option"><input type="radio" name="q6" value="B" class="quiz-radio"> Le fait d'apporter une donnée, une statistique ou une citation inédite que l'IA ne trouve nulle part ailleurs.</label>
+                        <label class="quiz-option"><input type="radio" name="q6" value="C" class="quiz-radio"> L'augmentation du budget publicitaire (Ads).</label>
+                    </div>
+                </div>
+
+                <div id="qcard-7" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-blue-600 mr-2">7.</span> Pourquoi les IA aiment-elles les tableaux HTML et les listes (Markdown) ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q7" value="A" class="quiz-radio"> Parce que c'est plus joli visuellement pour l'utilisateur final.</label>
+                        <label class="quiz-option"><input type="radio" name="q7" value="B" class="quiz-radio"> Parce que cela structure clairement la donnée (clés/valeurs), facilitant l'extraction par les parseurs de l'IA.</label>
+                        <label class="quiz-option"><input type="radio" name="q7" value="C" class="quiz-radio"> Pour éviter de payer des droits d'auteur sur le texte libre.</label>
+                    </div>
+                </div>
+
+                <div id="qcard-8" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-blue-600 mr-2">8.</span> Quel est le nouveau KPI recommandé pour mesurer le succès en GEO ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q8" value="A" class="quiz-radio"> Le CTR (Click-Through Rate).</label>
+                        <label class="quiz-option"><input type="radio" name="q8" value="B" class="quiz-radio"> Le SMV (Share of Model Voice : taux de citation par l'IA).</label>
+                        <label class="quiz-option"><input type="radio" name="q8" value="C" class="quiz-radio"> Le Bounce Rate (Taux de rebond).</label>
+                    </div>
+                </div>
+
+                <div id="qcard-9" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-blue-600 mr-2">9.</span> En GEO, quel "Ton de voix" (Tone of Voice) faut-il adopter ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q9" value="A" class="quiz-radio"> Un ton très commercial et vendeur avec beaucoup de promesses.</label>
+                        <label class="quiz-option"><input type="radio" name="q9" value="B" class="quiz-radio"> Un ton humoristique avec des Emojis pour retenir l'attention.</label>
+                        <label class="quiz-option"><input type="radio" name="q9" value="C" class="quiz-radio"> Un ton neutre, factuel et pédagogique (Objectivité type Wikipedia).</label>
+                    </div>
+                </div>
+
+                <div id="qcard-10" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-blue-600 mr-2">10.</span> Quel est le rôle du script JSON-LD (Schema.org) ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q10" value="A" class="quiz-radio"> Tracker les visiteurs (comme Google Analytics).</label>
+                        <label class="quiz-option"><input type="radio" name="q10" value="B" class="quiz-radio"> Donner une ligne directe d'informations pré-digérées (Questions/Réponses) aux robots d'indexation.</label>
+                        <label class="quiz-option"><input type="radio" name="q10" value="C" class="quiz-radio"> Améliorer la vitesse de chargement des images.</label>
+                    </div>
+                </div>
+
+                <div class="mt-8 mb-12 flex flex-col items-center">
+                    <button type="submit" class="bg-blue-600 text-white px-10 py-4 rounded-full font-bold shadow-xl hover:bg-blue-700 transition transform hover:scale-105">
+                        Valider mes réponses
+                    </button>
+                    
+                    <div id="quiz-result" class="hidden mt-6 px-8 py-4 rounded-2xl text-2xl font-black text-center shadow-lg w-full max-w-md border-2 border-transparent transition-all duration-500">
+                        Score final : 0 / 10
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-4xl text-center">
+            <div class="anim d1 p-6 bg-white/60 rounded-3xl mb-8 border-none backdrop-blur inline-block shadow-sm">
+                <i data-lucide="rocket" class="text-blue-600" width="48" height="48"></i>
+            </div>
+            <h2 class="anim d2 text-5xl font-black mb-6 text-slate-900">Le SEO a évolué. Vous aussi.</h2>
+            <p class="anim d3 text-xl text-slate-600 font-medium mb-10 max-w-2xl mx-auto leading-relaxed">
+                Le trafic organique brut va chuter, mais l'Influence de votre Marque via l'IA va devenir le canal d'acquisition n°1 des entreprises de demain.
+            </p>
+            <div class="anim d4 flex gap-4 justify-center">
+                <button class="bg-slate-900 text-white px-8 py-3 rounded-full font-bold shadow-lg hover:bg-blue-600 transition" onclick="goToSlide(0)">
+                    Reprendre la masterclass
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        (function() {
+            lucide.createIcons();
+            const slides = document.querySelectorAll('.slide');
+            const totalSlides = slides.length;
+            let currentSlide = 0;
+
+            function updateSlide() {
+                slides.forEach((slide, i) => slide.classList.toggle('active', i === currentSlide));
+                const pct = ((currentSlide + 1) / totalSlides) * 100;
+                document.getElementById('progress').style.width = pct + '%';
+                document.getElementById('slideCounter').textContent = String(currentSlide + 1).padStart(2, '0') + ' / ' + String(totalSlides).padStart(2, '0');
+            }
+
+            window.nextSlide = () => { if (currentSlide < totalSlides - 1) { currentSlide++; updateSlide(); } };
+            window.prevSlide = () => { if (currentSlide > 0) { currentSlide--; updateSlide(); } };
+            window.goToSlide = (n) => { currentSlide = n; updateSlide(); };
+            
+            document.addEventListener('keydown', (e) => {
+                if(e.key === 'ArrowRight' || e.key === ' ') { 
+                    if(document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "BUTTON") {
+                        e.preventDefault(); nextSlide(); 
+                    }
+                }
+                if(e.key === 'ArrowLeft') { 
+                    if(document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "BUTTON") {
+                        e.preventDefault(); prevSlide(); 
+                    }
+                }
+            });
+
+            // Touch swipe
+            let touchStartX = 0;
+            document.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
+            document.addEventListener('touchend', e => {
+                if(touchStartX - e.changedTouches[0].screenX > 50) nextSlide();
+                if(e.changedTouches[0].screenX - touchStartX > 50) prevSlide();
+            }, {passive: true});
+
+            // --- QUIZ LOGIC ---
+            window.checkQuiz = () => {
+                const answers = {
+                    q1: 'B', q2: 'B', q3: 'A', q4: 'B', q5: 'A',
+                    q6: 'B', q7: 'B', q8: 'B', q9: 'C', q10: 'B'
+                };
+                let score = 0;
+                
+                for (let i = 1; i <= 10; i++) {
+                    const qName = 'q' + i;
+                    const selected = document.querySelector(`input[name="${qName}"]:checked`);
+                    const qCard = document.getElementById(`qcard-${i}`);
+                    
+                    qCard.classList.remove('border-emerald-500', 'border-red-500', 'bg-emerald-50', 'bg-red-50', 'border-transparent', 'border-amber-400');
+                    
+                    if (selected) {
+                        if (selected.value === answers[qName]) {
+                            score++;
+                            qCard.classList.add('border-emerald-500', 'bg-emerald-50');
+                        } else {
+                            qCard.classList.add('border-red-500', 'bg-red-50');
+                        }
+                    } else {
+                        qCard.classList.add('border-amber-400');
+                    }
+                }
+                
+                const resultBox = document.getElementById('quiz-result');
+                resultBox.classList.remove('hidden', 'bg-emerald-100', 'text-emerald-800', 'border-emerald-300', 'bg-amber-100', 'text-amber-800', 'border-amber-300', 'bg-red-100', 'text-red-800', 'border-red-300');
+                
+                resultBox.innerHTML = `Score final : ${score} / 10`;
+                
+                if (score === 10) {
+                    resultBox.classList.add('bg-emerald-100', 'text-emerald-800', 'border-emerald-300');
+                    resultBox.innerHTML += `<br><span class="text-sm font-medium">Parfait ! Vous êtes prêt pour la transition GEO.</span>`;
+                } else if (score >= 7) {
+                    resultBox.classList.add('bg-amber-100', 'text-amber-800', 'border-amber-300');
+                    resultBox.innerHTML += `<br><span class="text-sm font-medium">Bon travail, quelques concepts à revoir.</span>`;
+                } else {
+                    resultBox.classList.add('bg-red-100', 'text-red-800', 'border-red-300');
+                    resultBox.innerHTML += `<br><span class="text-sm font-medium">Relisez la formation, le paradigme a changé !</span>`;
+                }
+                
+                resultBox.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            };
+
+            updateSlide();
+        })();
+    </script>
+</body>
+</html>
